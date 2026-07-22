@@ -2,14 +2,15 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
-import { fetchCurrentFreeGames } from "./epic.js";
-import { fetchGameMetadata } from "./rawg.js";
+import fetchEpicGames from "./epic.js";
+import { fetchGameData } from "./rawg.js";
 import {
     normalizeTitle,
-    dedupeClaims,
-    recalculateDates
+    removeDuplicateClaims,
+    rebuildGameStats
 } from "./normalize.js";
 import { writeGamesFile } from "./writer.js";
+import { formatDate } from "./utils.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,7 +37,9 @@ function findGameIndex(games, title) {
 }
 
 async function processGame(games, epicGame) {
-    const today = epicGame.date;
+    
+    const date = formatDate(epicGame.startDate);
+
 
     const index = findGameIndex(games, epicGame.title);
 
@@ -47,19 +50,19 @@ async function processGame(games, epicGame) {
         const game = games[index];
 
         const exists = game.claims.some(
-            c => c.date === today && c.platform === epicGame.platform
+            c => c.date === date && c.platform === epicGame.platform
         );
 
         if (!exists) {
             game.claims.push({
-                date: today,
+                date: date,
                 platform: epicGame.platform
             });
         }
 
-        game.claims = dedupeClaims(game.claims);
+        game.claims = removeDuplicateClaims(game.claims);
 
-        recalculateDates(game);
+        rebuildGameStats(game);
 
         console.log(`↻ Atualizado: ${game.title}`);
 
@@ -71,7 +74,7 @@ async function processGame(games, epicGame) {
     // -------------------------------------------------
     console.log(`＋ Novo jogo: ${epicGame.title}`);
 
-    const meta = await fetchGameMetadata(epicGame.title);
+    const meta = await fetchGameData(epicGame.title);
 
     const newGame = {
         title: epicGame.title,
@@ -80,12 +83,12 @@ async function processGame(games, epicGame) {
         metacritic: meta.metacritic,
         claims: [
             {
-                date: today,
+                date: date,
                 platform: epicGame.platform
             }
         ],
-        firstDate: today,
-        lastDate: today,
+        firstDate: date,
+        lastDate: date,
         timesFree: 1
     };
 
@@ -100,7 +103,7 @@ async function main() {
 
         console.log("🎮 Consultando Epic Games...");
 
-        const currentGames = await fetchCurrentFreeGames();
+        const currentGames = await fetchEpicGames();
 
         console.log(`✓ ${currentGames.length} jogos encontrados`);
 
@@ -110,8 +113,9 @@ async function main() {
 
         // Limpeza geral
         for (const game of games) {
-            game.claims = dedupeClaims(game.claims);
-            recalculateDates(game);
+            game.claims = removeDuplicateClaims(game.claims);
+	    rebuildGameStats(game);
+
         }
 
         // Ordena pelos mais recentes
@@ -122,7 +126,7 @@ async function main() {
 
         console.log("💾 Salvando arquivo...");
 
-        writeGamesFile(DATA_FILE, games);
+        writeGamesFile(games, DATA_FILE);
 
         console.log("✅ Atualização concluída!");
     } catch (error) {
