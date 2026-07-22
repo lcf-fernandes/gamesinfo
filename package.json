@@ -1,0 +1,30 @@
+{
+  "name": "epic-games-updater",
+  "version": "1.0.0",
+  "description": "Atualizador automático do banco de jogos grátis da Epic Games.",
+  "type": "module",
+  "private": true,
+  "main": "scripts/update-games.js",
+  "scripts": {
+    "update": "node scripts/update-games.js",
+    "epic": "node scripts/epic.js",
+    "test": "node scripts/update-games.js",
+    "start": "npm run update"
+  },
+  "dependencies": {
+    "dotenv": "^16.6.1"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "epic-games",
+    "games",
+    "giveaway",
+    "automation",
+    "rawg",
+    "metacritic"
+  ],
+  "author": "Leandro Fernandes",
+  "license": "MIT"
+}

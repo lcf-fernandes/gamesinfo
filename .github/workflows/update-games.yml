@@ -1,0 +1,39 @@
+name: Update Games
+
+on:
+
+  schedule:
+    - cron: '10 15 * * 4'
+
+  workflow_dispatch:
+
+jobs:
+
+  update:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm install
+
+      - run: node scripts/update-games.js
+
+      - name: Commit
+
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+
+          git add .
+
+          git diff --cached --quiet || \
+          git commit -m "Weekly Epic Games update"
+
+      - run: git push
